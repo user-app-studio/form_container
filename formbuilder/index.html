@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6366F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FormBuilder — Generador de Formularios</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo.ico">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --pri:#6366F1;--pri-d:#4F46E5;--pri-l:#A5B4FC;--pri-bg:rgba(99,102,241,.08);
+  --bg:#0A0E1A;--bg2:#111827;--bg3:#1F2937;--bg4:#374151;
+  --surface:#161B2E;--surface2:#1E2540;
+  --tx:#F1F5F9;--tx2:#94A3B8;--tx3:#64748B;
+  --ok:#10B981;--ok-bg:rgba(16,185,129,.12);
+  --err:#EF4444;--err-bg:rgba(239,68,68,.12);
+  --warn:#F59E0B;
+  --green-btn:#42e208;
+  --rad:14px;--rad-sm:10px;--rad-xs:6px;
+  --transition:all .25s cubic-bezier(.4,0,.2,1);
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Montserrat',sans-serif;font-weight:700;letter-spacing:-.01em}
+input,select,textarea,button{font-family:'Montserrat',sans-serif;font-size:inherit}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:8px}
+::selection{background:var(--pri);color:#fff}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 60% at 10% 20%,rgba(99,102,241,.12) 0%,transparent 60%),
+  radial-gradient(ellipse 60% 50% at 90% 80%,rgba(16,185,129,.08) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 40% at 50% 10%,rgba(245,158,11,.06) 0%,transparent 50%)}
+
+.app{position:relative;z-index:1;display:grid;grid-template-rows:auto 1fr;height:100vh}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;
+  background:rgba(22,27,46,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);
+  position:sticky;top:0;z-index:100}
+.logo-area{display:flex;align-items:center;gap:10px}
+.logo-area img.app-logo{width:30px;height:30px;border-radius:8px;object-fit:contain}
+.logo-area h1{font-size:1.05rem;background:linear-gradient(135deg,var(--pri-l),var(--pri),var(--ok));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 16px;border-radius:var(--rad-sm);
+  border:none;cursor:pointer;font-weight:600;font-size:.82rem;transition:var(--transition);white-space:nowrap}
+.btn svg{width:15px;height:15px;flex-shrink:0}
+.btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri-d);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,102,241,.4)}
+.btn-ghost{background:transparent;color:var(--tx2);border:1px solid rgba(255,255,255,.1)}.btn-ghost:hover{background:rgba(255,255,255,.05);color:var(--tx)}
+.btn-ok{background:var(--ok);color:#fff}.btn-ok:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-sm{padding:5px 10px;font-size:.75rem;border-radius:var(--rad-xs)}
+.btn:disabled{opacity:.5;pointer-events:none}
+
+main{display:grid;grid-template-columns:340px 1fr;gap:0;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.06);background:rgba(22,27,46,.5);backdrop-filter:blur(10px);overflow-y:auto}
+.sidebar-inner{padding:16px;display:flex;flex-direction:column;gap:0}
+.section{border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:14px;margin-bottom:14px}
+.section:last-child{border-bottom:none;margin-bottom:0}
+.section-title{font-size:.72rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.section-title svg{width:14px;height:14px;opacity:.5}
+
+/* FORM GROUPS */
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.75rem;font-weight:600;color:var(--tx2);margin-bottom:5px;letter-spacing:.02em}
+.fg input,.fg select,.fg textarea{width:100%;padding:8px 12px;background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:var(--rad-xs);color:var(--tx);font-size:.85rem;transition:var(--transition);outline:none}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.fg textarea{resize:vertical;min-height:50px}
+.fg .help{font-size:.7rem;color:var(--tx3);margin-top:3px}
+.fg input[type="file"]{padding:6px;font-size:.78rem}
+.logo-preview{margin-top:6px;display:flex;align-items:center;gap:8px}
+.logo-preview img{width:40px;height:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+
+/* OPTIONS EDITOR */
+.options-section{margin-top:2px}
+.options-section .section-title{margin-bottom:8px}
+.option-item{display:flex;gap:6px;align-items:center;margin-bottom:6px;animation:fadeUp .2s ease}
+.option-item input[type="text"]{flex:1;padding:8px 12px;background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:var(--rad-xs);color:var(--tx);font-size:.85rem;transition:var(--transition);outline:none}
+.option-item input[type="text"]:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.option-item .del-opt{background:transparent;border:none;color:var(--tx3);cursor:pointer;padding:4px 6px;border-radius:4px;font-size:1.1rem;line-height:1;transition:var(--transition)}
+.option-item .del-opt:hover{color:var(--err);background:var(--err-bg)}
+.add-opt-btn{display:flex;align-items:center;gap:5px;background:transparent;border:1px dashed rgba(255,255,255,.12);border-radius:var(--rad-xs);padding:7px 12px;color:var(--pri-l);font-size:.8rem;font-weight:500;cursor:pointer;width:100%;justify-content:center;transition:var(--transition);margin-top:4px}
+.add-opt-btn:hover{background:var(--pri-bg);border-color:var(--pri)}
+
+/* PREVIEW */
+.preview-panel{background:#ffffff;overflow-y:auto;padding:24px;display:flex;justify-content:center;align-items:flex-start}
+.preview-frame{width:100%;max-width:620px;min-height:200px}
+.preview-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#999;text-align:center;width:100%}
+.preview-empty svg{width:56px;height:56px;margin-bottom:14px;opacity:.2}
+
+/* GENERATED FORM PREVIEW - all inputs interactive */
+.gf-card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden;color:#1a1a1a}
+.gf-header{padding:24px 28px 18px;text-align:center;border-bottom:3px solid #6366F1}
+.gf-header img{border-radius:12px;margin-bottom:8px;object-fit:contain}
+.gf-header h2{font-family:'Montserrat',sans-serif;font-size:1.3rem;font-weight:700;margin-bottom:5px}
+.gf-header p{font-size:.84rem;color:#666;line-height:1.5}
+.gf-body{padding:6px 28px 24px}
+.gf-field{margin-bottom:18px}
+.gf-field label{display:block;font-size:.82rem;font-weight:600;color:#333;margin-bottom:5px}
+.gf-field label .req{color:#EF4444;margin-left:2px}
+.gf-field input[type="text"],.gf-field input[type="email"],.gf-field input[type="tel"],.gf-field textarea{
+  width:100%;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;font-size:.86rem;outline:none;background:#fafafa;font-family:'Montserrat',sans-serif;color:#333;transition:border-color .2s,box-shadow .2s}
+.gf-field input[type="text"]:focus,.gf-field input[type="email"]:focus,.gf-field input[type="tel"]:focus,.gf-field textarea:focus{border-color:#6366F1;box-shadow:0 0 0 4px rgba(99,102,241,.13)}
+.gf-field textarea{min-height:70px;resize:vertical}
+.gf-check-group{display:flex;flex-direction:column;gap:7px}
+.gf-check-item{display:flex;align-items:center;gap:8px;font-size:.86rem;color:#444;cursor:pointer}
+.gf-check-item input{width:auto;accent-color:#6366F1;cursor:pointer}
+.gf-notes{margin-top:8px;padding-top:16px;border-top:1px dashed #e0e0e0}
+.gf-notes label{color:#888;font-weight:500;font-size:.8rem}
+.gf-notes span{font-size:.72rem;color:#aaa;font-weight:400;margin-left:4px}
+.gf-submit{text-align:center;padding:6px 28px 28px}
+.gf-submit button{padding:11px 36px;border:none;border-radius:10px;font-size:.95rem;font-weight:700;color:#fff;cursor:pointer;font-family:'Montserrat',sans-serif;background:var(--green-btn);box-shadow:0 4px 16px rgba(66,226,8,.3)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:var(--rad);width:100%;max-width:720px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.06)}
+.modal-header h3{font-size:1rem}
+.modal-close{background:transparent;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:1.3rem;line-height:1}
+.modal-close:hover{color:var(--tx)}
+.modal-body{padding:22px}
+
+/* SUCCESS */
+.success-panel{text-align:center;padding:16px}
+.success-panel .check-circle{width:56px;height:56px;border-radius:50%;background:var(--ok-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.success-panel .check-circle svg{width:28px;height:28px;color:var(--ok)}
+.success-panel h3{color:var(--ok);margin-bottom:6px;font-size:1.05rem}
+.success-panel p{color:var(--tx2);font-size:.85rem;margin-bottom:14px}
+.url-box{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:var(--rad-xs);padding:9px 12px;margin-bottom:10px}
+.url-box input{flex:1;background:transparent;border:none;color:var(--pri-l);font-size:.8rem;outline:none;font-family:monospace}
+.url-box button{flex-shrink:0}
+.qr-section{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}
+.qr-card-preview{background:#fff;border-radius:12px;padding:16px;max-width:280px;margin:12px auto;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.qr-card-preview img{width:100%;border-radius:6px}
+.download-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+
+/* TOAST */
+.toast-container{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:6px}
+.toast{padding:10px 18px;border-radius:var(--rad-sm);font-size:.84rem;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:slideIn .3s ease;display:flex;align-items:center;gap:8px;font-weight:500}
+.toast.ok{background:var(--ok)}.toast.err{background:var(--err)}.toast.info{background:var(--pri)}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.install-banner{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid rgba(255,255,255,.1);border-radius:var(--rad);padding:12px 20px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:150;display:none;align-items:center;gap:14px;max-width:380px}
+.install-banner.show{display:flex}
+.install-banner p{font-size:.84rem;color:var(--tx2)}
+
+@media(max-width:900px){
+  main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{max-height:45vh;border-right:none;border-bottom:1px solid rgba(255,255,255,.06)}
+  .preview-panel{padding:14px}
+  .header-actions{gap:4px}
+  .header-actions .btn{padding:5px 8px;font-size:.72rem}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo-area">
+    <img class="app-logo" id="appLogo" src="logo.ico" alt="Logo" onerror="this.style.display='none'">
+    <h1>FormBuilder</h1>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="showPreviewModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Vista previa
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="downloadHTML()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Generar HTML
+    </button>
+    <button class="btn btn-ok btn-sm" onclick="publishToGitHub()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14.899A7 7 0 1115.71 8h1.79a4.5 4.5 0 012.5 8.242"/><polyline points="12 12 12 21"/><polyline points="8 17 12 21 16 17"/></svg>
+      Publicar
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="sidebar">
+    <div class="sidebar-inner">
+      <!-- SETTINGS -->
+      <div class="section">
+        <div class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Configuracion
+        </div>
+        <div class="fg">
+          <label>Titulo del formulario</label>
+          <input type="text" id="formTitle" oninput="onSettingChange()">
+        </div>
+        <div class="fg">
+          <label>Descripcion</label>
+          <textarea id="formDesc" rows="2" oninput="onSettingChange()"></textarea>
+        </div>
+        <div class="fg">
+          <label>Correo donde se envia el formulario</label>
+          <input type="email" id="formEmail" oninput="onSettingChange()">
+        </div>
+        <div class="fg">
+          <label>Nombre del archivo</label>
+          <input type="text" id="formSlug" oninput="onSettingChange()">
+          <div class="help">Nombre del .html generado</div>
+        </div>
+        <div class="fg">
+          <label>Logo del formulario</label>
+          <input type="file" id="formLogo" accept="image/*" onchange="onLogoChange(event)">
+          <div class="logo-preview" id="logoPreview" style="display:none">
+            <img id="logoPreviewImg" src="" alt="Logo">
+            <button class="btn btn-ghost btn-sm" onclick="removeLogo()">Quitar</button>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Tamano del logo en el formulario</label>
+          <select id="logoSize" onchange="onSettingChange()">
+            <option value="40">Pequeno (40px)</option>
+            <option value="56" selected>Mediano (56px)</option>
+            <option value="80">Grande (80px)</option>
+            <option value="120">Muy grande (120px)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- CUSTOM OPTIONS -->
+      <div class="section options-section">
+        <div class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+          Escoja opciones
+        </div>
+        <div class="fg">
+          <label>Titulo de la seccion de opciones</label>
+          <input type="text" id="optionsTitle" value="Escoja opciones" oninput="onSettingChange()">
+        </div>
+        <div class="fg">
+          <label>Titulo del campo de notas</label>
+          <input type="text" id="notesTitle" value="Notas" oninput="onSettingChange()">
+        </div>
+        <p style="font-size:.72rem;color:var(--tx3);margin-bottom:10px">Agrega opciones con casillas de verificacion</p>
+        <div id="optionsList"></div>
+        <button class="add-opt-btn" onclick="addOption()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Agregar opcion
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="preview-frame" id="previewFrame">
+      <div class="preview-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <p style="margin-top:8px;font-size:.9rem">Vista previa del formulario</p>
+        <small style="font-size:.78rem">Configura tu formulario para ver la vista previa</small>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header"><h3>Vista previa completa</h3><button class="modal-close" onclick="closeModal('previewModal')">&times;</button></div>
+    <div class="modal-body" id="previewModalBody" style="background:#ffffff;border-radius:0 0 14px 14px;padding:24px"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="publishModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><h3>Publicar formulario</h3><button class="modal-close" onclick="closeModal('publishModal')">&times;</button></div>
+    <div class="modal-body" id="publishModalBody"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<div class="install-banner" id="installBanner">
+  <p>Instala FormBuilder</p>
+  <button class="btn btn-pri btn-sm" id="installBtn">Instalar</button>
+  <button class="modal-close" onclick="document.getElementById('installBanner').classList.remove('show')">&times;</button>
+</div>
+<canvas id="qrCardCanvas" style="display:none"></canvas>
+
+<script>
+const GITHUB_TOKEN="YOUR_GITHUB_TOKEN_HERE";
+const GITHUB_USER="user-app-studio";
+const GITHUB_REPO="form_container";
+const GREEN_BTN="#42e208";
+
+let formState={
+  title:'',
+  description:'',
+  email:'',
+  slug:'',
+  logoBase64:'',
+  logoSize:'56',
+  optionsTitle:'Escoja opciones',
+  notesTitle:'Notas',
+  options:['Opcion 1','Opcion 2']
+};
+
+document.addEventListener('DOMContentLoaded',()=>{loadFromStorage();renderOptions();updatePreview()});
+
+// ─── SETTINGS ───
+function onSettingChange(){
+  formState.title=document.getElementById('formTitle').value;
+  formState.description=document.getElementById('formDesc').value;
+  formState.email=document.getElementById('formEmail').value;
+  formState.slug=document.getElementById('formSlug').value;
+  formState.logoSize=document.getElementById('logoSize').value;
+  formState.optionsTitle=document.getElementById('optionsTitle').value;
+  formState.notesTitle=document.getElementById('notesTitle').value;
+  if(!formState.slug&&formState.title){
+    document.getElementById('formSlug').value=slugify(formState.title);
+    formState.slug=document.getElementById('formSlug').value;
+  }
+  saveToStorage();updatePreview();
+}
+function slugify(t){return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').substring(0,60)}
+function onLogoChange(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{formState.logoBase64=reader.result;document.getElementById('logoPreview').style.display='flex';document.getElementById('logoPreviewImg').src=reader.result;saveToStorage();updatePreview();toast('Logo cargado','ok')};
+  reader.readAsDataURL(file);
+}
+function removeLogo(){formState.logoBase64='';document.getElementById('logoPreview').style.display='none';document.getElementById('formLogo').value='';saveToStorage();updatePreview()}
+
+// ─── OPTIONS ───
+function addOption(){
+  formState.options.push('Opcion '+(formState.options.length+1));
+  saveToStorage();renderOptions();updatePreview();
+}
+function removeOption(i){
+  if(formState.options.length<=1){toast('Debe haber al menos una opcion','err');return}
+  formState.options.splice(i,1);
+  saveToStorage();renderOptions();updatePreview();
+}
+function updateOption(i,val){
+  formState.options[i]=val;
+  saveToStorage();updatePreview();
+}
+
+function renderOptions(){
+  const c=document.getElementById('optionsList');
+  c.innerHTML='';
+  formState.options.forEach((opt,i)=>{
+    const row=document.createElement('div');
+    row.className='option-item';
+    row.innerHTML='<input type="text" value="'+esc(opt)+'" oninput="updateOption('+i+',this.value)"><button class="del-opt" onclick="removeOption('+i+')" title="Eliminar">&times;</button>';
+    c.appendChild(row);
+  });
+}
+
+// ─── PREVIEW ───
+function updatePreview(){
+  const frame=document.getElementById('previewFrame');
+  if(!formState.title&&formState.options.length===0){
+    frame.innerHTML='<div class="preview-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><p style="margin-top:8px;font-size:.9rem;color:#999">Vista previa del formulario</p><small style="font-size:.78rem;color:#bbb">Configura tu formulario para ver la vista previa</small></div>';
+    return;
+  }
+  frame.innerHTML=buildFormPreviewHTML();
+}
+
+function buildFormPreviewHTML(){
+  const sz=formState.logoSize||'56';
+  const optTitle=esc(formState.optionsTitle)||'Escoja opciones';
+  const ntTitle=esc(formState.notesTitle)||'Notas';
+
+  let h='<div class="gf-card"><div class="gf-header">';
+  if(formState.logoBase64) h+='<img src="'+formState.logoBase64+'" alt="Logo" style="width:'+sz+'px;height:'+sz+'px">';
+  h+='<h2>'+(esc(formState.title)||'Titulo del formulario')+'</h2>';
+  if(formState.description) h+='<p>'+esc(formState.description)+'</p>';
+  h+='</div>';
+  h+='<div class="gf-body">';
+
+  // Fixed fields: Nombre, Telefono, Email - ALL INTERACTIVE (no disabled)
+  h+='<div class="gf-field"><label>Nombre<span class="req"> *</span></label><input type="text"></div>';
+  h+='<div class="gf-field"><label>Telefono<span class="req"> *</span></label><input type="tel"><div style="font-size:.72rem;color:#999;margin-top:3px">Formato internacional: +34 612 345 678</div></div>';
+  h+='<div class="gf-field"><label>Email<span class="req"> *</span></label><input type="email"></div>';
+
+  // Custom options with checkboxes - ALL INTERACTIVE (no disabled)
+  if(formState.options.length>0){
+    h+='<div class="gf-field"><label>'+optTitle+'<span class="req"> *</span></label><div class="gf-check-group">';
+    formState.options.forEach(function(o){
+      h+='<label class="gf-check-item"><input type="checkbox"> '+esc(o)+'</label>';
+    });
+    h+='</div></div>';
+  }
+
+  // Notas (optional) - INTERACTIVE (no disabled)
+  h+='<div class="gf-field gf-notes"><label>'+ntTitle+' <span>(opcional)</span></label><textarea rows="3"></textarea></div>';
+
+  h+='</div>';
+  h+='<div class="gf-submit"><button type="button">Enviar formulario</button></div>';
+  h+='</div>';
+  return h;
+}
+
+// ─── GENERATE HTML ───
+function generateStandaloneHTML(){
+  const title=formState.title||'Formulario',
+        desc=formState.description||'',
+        email=formState.email||'',
+        logo=formState.logoBase64,
+        sz=formState.logoSize||'56',
+        slug=formState.slug||'formulario',
+        optTitle=esc(formState.optionsTitle)||'Escoja opciones',
+        ntTitle=esc(formState.notesTitle)||'Notas';
+
+  let optionsHTML='';
+  if(formState.options.length>0){
+    optionsHTML='<div class="ff"><label>'+optTitle+'<span style="color:#EF4444"> *</span></label><div class="cg">';
+    formState.options.forEach(function(o,i){
+      optionsHTML+='<label class="ci"><input type="checkbox" name="opt_'+i+'" value="'+esc(o)+'"> '+esc(o)+'</label>';
+    });
+    optionsHTML+='</div></div>';
+  }
+
+  // Escape values for embedding in JS strings inside the generated HTML
+  var jsSafeTitle=esc(title).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+  var jsSafeDesc=esc(desc).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+  var jsSafeOptTitle=optTitle.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+  var jsSafeNtTitle=ntTitle.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+  var jsSafeEmail=esc(email).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+  var jsSafeSlug=esc(slug).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"');
+  var jsSafeLogo=logo?logo.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"'):'';
+
+  var lines=[];
+  lines.push('<!DOCTYPE html>');
+  lines.push('<html lang="es">');
+  lines.push('<head>');
+  lines.push('<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">');
+  lines.push('<title>'+esc(title)+'<\/title>');
+  lines.push('<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">');
+  lines.push('<style>');
+  lines.push('*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}');
+  lines.push("body{font-family:'Montserrat',sans-serif;background:#ffffff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}");
+  lines.push('.card{background:#fff;border-radius:18px;box-shadow:0 4px 30px rgba(0,0,0,.08);max-width:620px;width:100%;overflow:hidden}');
+  lines.push('.hd{text-align:center;padding:28px 28px 22px;border-bottom:3px solid #6366F1}');
+  lines.push('.hd img{width:'+sz+'px;height:'+sz+'px;border-radius:14px;margin-bottom:10px;object-fit:contain}');
+  lines.push('.hd h1{font-size:1.5rem;font-weight:700;color:#1a1a1a;margin-bottom:5px}');
+  lines.push('.hd p{color:#666;font-size:.9rem;line-height:1.5}');
+  lines.push('.bd{padding:10px 28px 28px}');
+  lines.push('.ff{margin-bottom:20px}');
+  lines.push('.ff label{display:block;font-size:.86rem;font-weight:600;color:#333;margin-bottom:7px}');
+  lines.push(".ff input[type='text'],.ff input[type='email'],.ff input[type='tel'],.ff textarea{width:100%;padding:11px 15px;border:2px solid #e5e7eb;border-radius:12px;font-size:.9rem;transition:border-color .2s,box-shadow .2s;outline:none;background:#fafafa;font-family:'Montserrat',sans-serif}");
+  lines.push('.ff input:focus,.ff textarea:focus{border-color:#6366F1;box-shadow:0 0 0 4px rgba(99,102,241,.13)}');
+  lines.push('.ff textarea{min-height:70px;resize:vertical}');
+  lines.push('.ff .errmsg{color:#EF4444;font-size:.75rem;margin-top:4px;display:none}');
+  lines.push('.ff input.invalid,.ff textarea.invalid{border-color:#EF4444;box-shadow:0 0 0 4px rgba(239,68,68,.13)}');
+  lines.push('.cg{display:flex;flex-direction:column;gap:9px}');
+  lines.push('.ci{display:flex;align-items:center;gap:9px;font-size:.9rem;color:#444;cursor:pointer}');
+  lines.push('.ci input{width:auto;accent-color:#6366F1;cursor:pointer}');
+  lines.push('.nt{margin-top:8px;padding-top:18px;border-top:1px dashed #e0e0e0}');
+  lines.push('.sb{text-align:center;padding:6px 28px 32px}');
+  lines.push('.sb button{padding:13px 44px;border:none;border-radius:12px;background:'+GREEN_BTN+';color:#fff;font-size:1rem;font-weight:700;cursor:pointer;font-family:\'Montserrat\',sans-serif;transition:all .2s;box-shadow:0 4px 16px rgba(66,226,8,.3)}');
+  lines.push('.sb button:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(66,226,8,.45)}');
+  lines.push('.ft{text-align:center;padding:14px;font-size:.72rem;color:#bbb}');
+  lines.push('@media(max-width:480px){.hd,.bd{padding-left:18px;padding-right:18px}.sb{padding-left:18px;padding-right:18px}}');
+  lines.push('<\/style>');
+  lines.push('<\/head>');
+  lines.push('<body>');
+  lines.push('<div class="card">');
+  lines.push('<div class="hd">'+(logo?'<img src="'+logo+'" alt="Logo">':'')+'<h1>'+esc(title)+'</h1>'+(desc?'<p>'+esc(desc)+'</p>':'')+'<\/div>');
+  lines.push('<form id="mainForm">');
+  lines.push('<div class="bd">');
+  lines.push('<div class="ff"><label>Nombre<span style="color:#EF4444"> *</span></label><input type="text" id="f_nombre" required></div>');
+  lines.push('<div class="ff"><label>Telefono<span style="color:#EF4444"> *</span></label><input type="tel" id="f_telefono" required><div class="errmsg" id="err_tel">Introduzca un n\u00famero correcto</div><div style="font-size:.72rem;color:#999;margin-top:3px">Formato internacional: +34 612 345 678</div></div>');
+  lines.push('<div class="ff"><label>Email<span style="color:#EF4444"> *</span></label><input type="email" id="f_email" required><div class="errmsg" id="err_email">Introduzca un correo correcto</div></div>');
+  lines.push(optionsHTML);
+  lines.push('<div class="ff nt"><label>'+ntTitle+' <span style="color:#aaa;font-weight:400;font-size:.8rem">(opcional)</span></label><textarea id="f_notas" rows="3"></textarea></div>');
+  lines.push('</div>');
+  lines.push('<div class="sb"><button type="button" id="submitBtn">Enviar formulario</button></div>');
+  lines.push('<\/form>');
+  lines.push('<div class="ft">Creado con FormBuilder<\/div>');
+  lines.push('<\/div>');
+  // Script section - built separately for clarity
+  var sc=[];
+  sc.push('<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>');
+  sc.push('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"><\/script>');
+  sc.push('<script>');
+  sc.push('var FORM_TITLE="'+jsSafeTitle+'";');
+  sc.push('var FORM_DESC="'+jsSafeDesc+'";');
+  sc.push('var LOGO_SRC="'+jsSafeLogo+'";');
+  sc.push('var LOGO_SIZE="'+sz+'";');
+  sc.push('var OPT_TITLE="'+jsSafeOptTitle+'";');
+  sc.push('var NOTES_TITLE="'+jsSafeNtTitle+'";');
+  sc.push('var EMAIL_ADDR="'+jsSafeEmail+'";');
+  sc.push('var SLUG="'+jsSafeSlug+'";');
+  sc.push('function escH(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}');
+  // Phone validation
+  sc.push('var telInput=document.getElementById("f_telefono");');
+  sc.push('telInput.addEventListener("input",function(){');
+  sc.push('  var v=this.value;');
+  sc.push('  var ok=/^\\+?[0-9\\s\\-\\(\\)]{7,20}$/.test(v);');
+  sc.push('  var errEl=document.getElementById("err_tel");');
+  sc.push('  if(v.length>0&&!ok){this.classList.add("invalid");errEl.style.display="block"}');
+  sc.push('  else{this.classList.remove("invalid");errEl.style.display="none"}');
+  sc.push('});');
+  // Email validation
+  sc.push('var emailInput=document.getElementById("f_email");');
+  sc.push('emailInput.addEventListener("input",function(){');
+  sc.push('  var v=this.value;');
+  sc.push('  var ok=/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v);');
+  sc.push('  var errEl=document.getElementById("err_email");');
+  sc.push('  if(v.length>0&&!ok){this.classList.add("invalid");errEl.style.display="block"}');
+  sc.push('  else{this.classList.remove("invalid");errEl.style.display="none"}');
+  sc.push('});');
+  // Submit handler
+  sc.push('document.getElementById("submitBtn").addEventListener("click",function(){');
+  sc.push('  var nombre=document.getElementById("f_nombre").value.trim();');
+  sc.push('  var telefono=document.getElementById("f_telefono").value.trim();');
+  sc.push('  var emailVal=document.getElementById("f_email").value.trim();');
+  sc.push('  var valid=true;');
+  sc.push('  if(!nombre){document.getElementById("f_nombre").focus();valid=false}');
+  sc.push('  var telOk=/^\\+?[0-9\\s\\-\\(\\)]{7,20}$/.test(telefono);');
+  sc.push('  if(!telefono||!telOk){document.getElementById("f_telefono").classList.add("invalid");document.getElementById("err_tel").style.display="block";if(valid){document.getElementById("f_telefono").focus()}valid=false}');
+  sc.push('  var emailOk=/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(emailVal);');
+  sc.push('  if(!emailVal||!emailOk){document.getElementById("f_email").classList.add("invalid");document.getElementById("err_email").style.display="block";if(valid){document.getElementById("f_email").focus()}valid=false}');
+  sc.push('  if(!valid)return;');
+  sc.push('  var checked=[];document.querySelectorAll("input[name^=opt_]:checked").forEach(function(cb){checked.push(cb.value)});');
+  sc.push('  var notas=document.getElementById("f_notas").value;');
+  sc.push('  var btn=this;btn.disabled=true;btn.textContent="Generando PDF...";');
+  sc.push('  generatePDF(nombre,telefono,emailVal,checked,notas,btn);');
+  sc.push('});');
+  // PDF generation as separate named function
+  sc.push('function generatePDF(nombre,telefono,emailVal,checked,notas,btn){');
+  sc.push('  var pdfDiv=document.createElement("div");');
+  sc.push('  pdfDiv.style.cssText="position:absolute;left:-9999px;top:0;width:600px;background:#fff;padding:0;font-family:Montserrat,sans-serif;z-index:-1";');
+  sc.push('  var logoHTML=LOGO_SRC?"<img src=\\""+LOGO_SRC+"\\" style=\\"width:"+LOGO_SIZE+"px;height:"+LOGO_SIZE+"px;border-radius:14px;margin-bottom:10px;object-fit:contain\\">":"";');
+  // Build checked options with ticks for PDF
+  sc.push('  var optHTML="";');
+  sc.push('  if(checked.length>0){');
+  sc.push('    optHTML="<div style=\\"margin-bottom:18px\\"><div style=\\"font-size:.86rem;font-weight:600;color:#333;margin-bottom:8px\\">"+escH(OPT_TITLE)+"</div>";');
+  sc.push('    checked.forEach(function(c){optHTML+="<div style=\\"padding:6px 12px;font-size:.88rem;color:#333\\">\\u2705 "+escH(c)+"</div>"});');
+  sc.push('    optHTML+="</div>";');
+  sc.push('  }');
+  // Notes section for PDF
+  sc.push('  var notasHTML="";');
+  sc.push('  if(notas&&notas.trim()){');
+  sc.push('    notasHTML="<div style=\\"margin-top:8px;padding-top:18px;border-top:1px dashed #e0e0e0\\"><div style=\\"font-size:.86rem;font-weight:500;color:#888;margin-bottom:5px\\">"+escH(NOTES_TITLE)+"</div><div style=\\"padding:11px 15px;border:2px solid #e5e7eb;border-radius:12px;background:#fafafa;font-size:.9rem;min-height:40px;white-space:pre-wrap\\">"+escH(notas)+"</div></div>";');
+  sc.push('  }');
+  sc.push('  pdfDiv.innerHTML="<div style=\\"background:#fff\\">"');
+  sc.push('    +"<div style=\\"text-align:center;padding:28px 28px 22px;border-bottom:3px solid #6366F1\\">"');
+  sc.push('    +logoHTML');
+  sc.push('    +"<h1 style=\\"font-size:1.5rem;font-weight:700;color:#1a1a1a;margin:0 0 5px;font-family:Montserrat,sans-serif\\">"+escH(FORM_TITLE)+"</h1>"');
+  sc.push('    +(FORM_DESC?"<p style=\\"color:#666;font-size:.9rem;margin:0\\">"+escH(FORM_DESC)+"</p>":"")');
+  sc.push('    +"</div>"');
+  sc.push('    +"<div style=\\"padding:20px 28px 28px\\">"');
+  sc.push('    +"<div style=\\"margin-bottom:18px\\"><div style=\\"font-size:.86rem;font-weight:600;color:#333;margin-bottom:5px\\">Nombre</div><div style=\\"padding:11px 15px;border:2px solid #e5e7eb;border-radius:12px;background:#fafafa;font-size:.9rem;min-height:20px\\">"+escH(nombre)+"</div></div>"');
+  sc.push('    +"<div style=\\"margin-bottom:18px\\"><div style=\\"font-size:.86rem;font-weight:600;color:#333;margin-bottom:5px\\">Telefono</div><div style=\\"padding:11px 15px;border:2px solid #e5e7eb;border-radius:12px;background:#fafafa;font-size:.9rem;min-height:20px\\">"+escH(telefono)+"</div></div>"');
+  sc.push('    +"<div style=\\"margin-bottom:18px\\"><div style=\\"font-size:.86rem;font-weight:600;color:#333;margin-bottom:5px\\">Email</div><div style=\\"padding:11px 15px;border:2px solid #e5e7eb;border-radius:12px;background:#fafafa;font-size:.9rem;min-height:20px\\">"+escH(emailVal)+"</div></div>"');
+  sc.push('    +optHTML');
+  sc.push('    +notasHTML');
+  sc.push('    +"</div>"');
+  sc.push('    +"<div style=\\"text-align:center;padding:14px;font-size:.72rem;color:#bbb\\">Creado con FormBuilder</div>"');
+  sc.push('    +"</div>";');
+  sc.push('  document.body.appendChild(pdfDiv);');
+  // Wait for images to load and content to render
+  sc.push('  setTimeout(function(){');
+  sc.push('    html2canvas(pdfDiv,{scale:2,useCORS:true,allowTaint:true,backgroundColor:"#ffffff",logging:false}).then(function(canvas){');
+  sc.push('      try{');
+  sc.push('        document.body.removeChild(pdfDiv);');
+  sc.push('        var imgData=canvas.toDataURL("image/png");');
+  sc.push('        var jsPDF=window.jspdf.jsPDF;');
+  sc.push('        var pdf=new jsPDF("p","mm","a4");');
+  sc.push('        var pageW=pdf.internal.pageSize.getWidth();');
+  sc.push('        var pageH=pdf.internal.pageSize.getHeight();');
+  sc.push('        var imgW=pageW-20;');
+  sc.push('        var imgH=(canvas.height*imgW)/canvas.width;');
+  sc.push('        if(imgH>pageH-20){imgH=pageH-20;imgW=(canvas.width*imgH)/canvas.height}');
+  sc.push('        pdf.addImage(imgData,"PNG",(pageW-imgW)/2,10,imgW,imgH);');
+  sc.push('        pdf.save("formulario-"+SLUG+".pdf");');
+  sc.push('        var subject=encodeURIComponent("Respuesta de formulario: "+FORM_TITLE);');
+  sc.push('        var body=encodeURIComponent("Se adjunta el formulario completado en formato PDF.\\n\\nDatos del formulario:\\nNombre: "+nombre+"\\nTelefono: "+telefono+"\\nEmail: "+emailVal+"\\n"+(checked.length>0?OPT_TITLE+": "+checked.join(", ")+"\\n":"")+(notas?NOTES_TITLE+": "+notas+"\\n":""));');
+  sc.push('        setTimeout(function(){window.location.href="mailto:"+EMAIL_ADDR+"?subject="+subject+"\\u0026body="+body},600);');
+  sc.push('      }catch(er){alert("Error al generar PDF: "+er.message)}');
+  sc.push('      btn.disabled=false;btn.textContent="Enviar formulario";');
+  sc.push('    }).catch(function(er){');
+  sc.push('      try{document.body.removeChild(pdfDiv)}catch(x){}');
+  sc.push('      alert("Error al generar PDF: "+er.message);');
+  sc.push('      btn.disabled=false;btn.textContent="Enviar formulario";');
+  sc.push('    });');
+  sc.push('  },500);');
+  sc.push('}');
+  sc.push('<\/script>');
+  sc.push('<\/body>');
+  sc.push('<\/html>');
+  lines.push(sc.join('\n'));
+  return lines.join('\n');
+}
+
+// ─── DOWNLOAD ───
+function downloadHTML(){
+  if(!validateForm())return;
+  const html=generateStandaloneHTML();
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(formState.slug||'formulario')+'.html';a.click();URL.revokeObjectURL(a.href);
+  toast('HTML descargado','ok');
+}
+
+// ─── QR ───
+async function generateQRDataURL(url,size){return await QRCode.toDataURL(url,{width:size||300,margin:2,color:{dark:'#1a1a1a',light:'#ffffff'},errorCorrectionLevel:'H'})}
+async function generateQRCardImage(url,title,logoBase64){
+  const W=600,H=800,canvas=document.getElementById('qrCardCanvas');
+  canvas.width=W;canvas.height=H;const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#ffffff';roundRect(ctx,0,0,W,H,24,true,false);
+  ctx.fillStyle='#6366F1';ctx.fillRect(0,0,W,6);
+  let y=60;
+  if(logoBase64){try{const img=await loadImage(logoBase64);const s=64;ctx.save();roundRectClip(ctx,(W-s)/2,y,s,s,14);ctx.drawImage(img,(W-s)/2,y,s,s);ctx.restore();y+=s+16}catch(e){y+=10}}
+  ctx.fillStyle='#1a1a1a';ctx.textAlign='center';ctx.font='bold 26px Montserrat,sans-serif';
+  wrapText(ctx,title||'Formulario',W/2,y+24,W-80,32);y+=60;
+  ctx.fillStyle='#888';ctx.font='14px Montserrat,sans-serif';ctx.fillText('Escanea el codigo QR para acceder al formulario',W/2,y+16);y+=50;
+  const qrImg=await loadImage(await QRCode.toDataURL(url,{width:280,margin:2,color:{dark:'#1a1a1a',light:'#ffffff'},errorCorrectionLevel:'H'}));
+  ctx.drawImage(qrImg,(W-280)/2,y,280,280);y+=280+24;
+  ctx.fillStyle='#aaa';ctx.font='11px monospace';const shortUrl=url.length>60?url.substring(0,60)+'...':url;ctx.fillText(shortUrl,W/2,y+8);
+  ctx.fillStyle='#ddd';ctx.font='10px Montserrat,sans-serif';ctx.fillText('Creado con FormBuilder',W/2,H-30);
+  return canvas.toDataURL('image/png');
+}
+function loadImage(src){return new Promise(function(ok,fail){var img=new Image();img.crossOrigin='anonymous';img.onload=function(){ok(img)};img.onerror=fail;img.src=src})}
+function roundRect(ctx,x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();if(fill)ctx.fill();if(stroke)ctx.stroke()}
+function roundRectClip(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();ctx.clip()}
+function wrapText(ctx,text,x,y,maxW,lineH){var words=text.split(' ');var line='';for(var wi=0;wi<words.length;wi++){var test=line+words[wi]+' ';if(ctx.measureText(test).width>maxW&&line){ctx.fillText(line.trim(),x,y);line=words[wi]+' ';y+=lineH}else{line=test}}ctx.fillText(line.trim(),x,y)}
+
+// ─── PUBLISH ───
+async function publishToGitHub(){
+  if(!validateForm())return;
+  const filename=(formState.slug||'formulario')+'.html';
+  const html=generateStandaloneHTML();
+  const content=btoa(unescape(encodeURIComponent(html)));
+  const liveUrl='https://'+GITHUB_USER+'.github.io/'+GITHUB_REPO+'/'+filename;
+  const modal=document.getElementById('publishModal'),body=document.getElementById('publishModalBody');
+  modal.classList.add('open');
+  body.innerHTML='<div style="text-align:center;padding:20px"><div style="width:36px;height:36px;border:3px solid var(--bg4);border-top-color:var(--pri);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div><p style="color:var(--tx2);font-size:.88rem">Publicando en GitHub...</p></div>';
+  try{
+    await uploadToGitHub(filename,content,'Crear/actualizar formulario: '+(formState.title||filename));
+
+    body.innerHTML='<div style="text-align:center;padding:20px"><div style="width:36px;height:36px;border:3px solid var(--bg4);border-top-color:var(--ok);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div><p style="color:var(--tx2);font-size:.88rem">Generando codigo QR...</p></div>';
+    const qrDataURL=await generateQRDataURL(liveUrl,300);
+    const qrCardDataURL=await generateQRCardImage(liveUrl,formState.title,formState.logoBase64);
+
+    const qrFilename=(formState.slug||'formulario')+'-qr.png';
+    await uploadToGitHub(qrFilename,qrCardDataURL.split(',')[1],'Agregar QR para: '+(formState.title||filename));
+
+    const configFilename=(formState.slug||'formulario')+'-config.json';
+    const configContent=btoa(unescape(encodeURIComponent(JSON.stringify(formState,null,2))));
+    await uploadToGitHub(configFilename,configContent,'Configuracion para: '+(formState.title||filename));
+
+    body.innerHTML='<div style="text-align:center;padding:20px"><div style="width:36px;height:36px;border:3px solid var(--bg4);border-top-color:var(--warn);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div><p style="color:var(--tx2);font-size:.88rem">Creando backup ZIP...</p></div>';
+    const zip=new JSZip();
+    zip.file(filename,html);
+    zip.file(qrFilename,await(await fetch(qrCardDataURL)).blob());
+    zip.file((formState.slug||'formulario')+'-qr-solo.png',await(await fetch(qrDataURL)).blob());
+    zip.file(configFilename,JSON.stringify(formState,null,2));
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    const zipUrl=URL.createObjectURL(zipBlob);
+
+    body.innerHTML='<div class="success-panel"><div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:28px;height:28px;color:var(--ok)"><polyline points="20 6 9 17 4 12"/></svg></div><h3>Publicado con exito</h3><p>Archivos creados: HTML, QR y configuracion</p><div class="url-box"><input type="text" value="'+liveUrl+'" readonly id="publishedUrl"><button class="btn btn-pri btn-sm" onclick="copyUrl()">Copiar</button></div><a href="'+liveUrl+'" target="_blank" class="btn btn-ghost btn-sm" style="display:inline-flex;text-decoration:none;margin-bottom:6px">Abrir en nueva pestana</a><div class="qr-section"><h4 style="font-size:.9rem;margin-bottom:3px;color:var(--tx)">Tarjeta QR</h4><p style="font-size:.78rem;color:var(--tx3);margin-bottom:10px">Imprime o comparte esta tarjeta</p><div class="qr-card-preview"><img src="'+qrCardDataURL+'" alt="QR Card"></div><div class="download-row"><a href="'+qrCardDataURL+'" download="'+(formState.slug||'formulario')+'-qr.png" class="btn btn-pri btn-sm">Descargar QR</a><a href="'+zipUrl+'" download="'+(formState.slug||'formulario')+'-backup.zip" class="btn btn-ok btn-sm">Descargar ZIP</a></div></div><p style="font-size:.72rem;color:var(--tx3);margin-top:12px">GitHub Pages puede tardar unos minutos en reflejar los cambios.</p></div>';
+  }catch(err){
+    body.innerHTML='<div style="text-align:center;padding:20px"><div style="width:56px;height:56px;border-radius:50%;background:var(--err-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><svg viewBox="0 0 24 24" fill="none" stroke="var(--err)" stroke-width="2" style="width:28px;height:28px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div><h3 style="color:var(--err);margin-bottom:6px">Error al publicar</h3><p style="color:var(--tx2);font-size:.85rem">'+esc(err.message)+'</p><button class="btn btn-ghost btn-sm" style="margin-top:14px" onclick="closeModal(\'publishModal\')">Cerrar</button></div>';
+  }
+}
+
+async function uploadToGitHub(filename,base64Content,message){
+  var sha=null;
+  try{var r=await fetch('https://api.github.com/repos/'+GITHUB_USER+'/'+GITHUB_REPO+'/contents/'+filename,{headers:{'Authorization':'token '+GITHUB_TOKEN}});if(r.ok)sha=(await r.json()).sha}catch(e){}
+  var payload={message:message,content:base64Content};if(sha)payload.sha=sha;
+  var res=await fetch('https://api.github.com/repos/'+GITHUB_USER+'/'+GITHUB_REPO+'/contents/'+filename,{method:'PUT',headers:{'Authorization':'token '+GITHUB_TOKEN,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  if(!res.ok){var err=await res.json();throw new Error(err.message||'Error al subir '+filename)}return res.json();
+}
+function copyUrl(){var i=document.getElementById('publishedUrl');i.select();navigator.clipboard.writeText(i.value).then(function(){toast('URL copiada','ok')})}
+
+function validateForm(){
+  if(!formState.title.trim()){toast('Ingresa un titulo','err');return false}
+  if(!formState.email.trim()){toast('Ingresa un correo destino','err');return false}
+  if(formState.options.length===0){toast('Agrega al menos una opcion','err');return false}
+  if(!formState.slug.trim()){formState.slug=slugify(formState.title);document.getElementById('formSlug').value=formState.slug}
+  return true;
+}
+
+function showPreviewModal(){
+  if(!formState.title){toast('Agrega un titulo primero','info');return}
+  document.getElementById('previewModalBody').innerHTML=buildFormPreviewHTML();
+  document.getElementById('previewModal').classList.add('open');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(function(m){m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open')})});
+
+function saveToStorage(){localStorage.setItem('formbuilder_state',JSON.stringify(formState))}
+function loadFromStorage(){
+  try{
+    var saved=localStorage.getItem('formbuilder_state');
+    if(saved){
+      var parsed=JSON.parse(saved);
+      formState.title=parsed.title||'';
+      formState.description=parsed.description||'';
+      formState.email=parsed.email||'';
+      formState.slug=parsed.slug||'';
+      formState.logoBase64=parsed.logoBase64||'';
+      formState.logoSize=parsed.logoSize||'56';
+      formState.optionsTitle=parsed.optionsTitle||'Escoja opciones';
+      formState.notesTitle=parsed.notesTitle||'Notas';
+      if(Array.isArray(parsed.options))formState.options=parsed.options;
+      document.getElementById('formTitle').value=formState.title;
+      document.getElementById('formDesc').value=formState.description;
+      document.getElementById('formEmail').value=formState.email;
+      document.getElementById('formSlug').value=formState.slug;
+      document.getElementById('logoSize').value=formState.logoSize;
+      document.getElementById('optionsTitle').value=formState.optionsTitle;
+      document.getElementById('notesTitle').value=formState.notesTitle;
+      if(formState.logoBase64){document.getElementById('logoPreview').style.display='flex';document.getElementById('logoPreviewImg').src=formState.logoBase64}
+    }
+  }catch(e){}
+}
+
+function toast(msg,type){
+  type=type||'info';
+  var c=document.getElementById('toastContainer'),t=document.createElement('div');t.className='toast '+type;
+  var icons={ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><polyline points="20 6 9 17 4 12"/></svg>',err:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'};
+  t.innerHTML=(icons[type]||icons.info)+' '+msg;c.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';t.style.transform='translateX(40px)';t.style.transition='all .3s ease';setTimeout(function(){t.remove()},300)},3000);
+}
+
+function esc(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
+var deferredPrompt;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;document.getElementById('installBanner').classList.add('show')});
+document.getElementById('installBtn').addEventListener('click',function(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;document.getElementById('installBanner').classList.remove('show')})}});
+document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveToStorage();toast('Guardado','ok')}});
+</script>
+</body>
+</html>
